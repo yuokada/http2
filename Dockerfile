@@ -18,12 +18,11 @@ RUN apt-get install -y --no-install-recommends \
        automake autoconf
 
 # Note: setting NGHTTP2_VER before the git clone, so an old git clone isn't cached:
-ENV NGHTTP2_VER af24f8394e43f4
+ENV NGHTTP2_VER v1.9.2
 RUN cd /root && git clone https://github.com/tatsuhiro-t/nghttp2.git
-
 WORKDIR /root/nghttp2
-RUN git reset --hard $NGHTTP2_VER
-RUN autoreconf -i && \
+RUN git checkout -b ${NGHTTP2_VER} refs/tags/${NGHTTP2_VER} && \
+    autoreconf -i && \
     automake && \
     autoconf && \
     ./configure && \
@@ -31,11 +30,15 @@ RUN autoreconf -i && \
     make install
 
 WORKDIR /root
-RUN wget http://curl.haxx.se/download/curl-7.40.0.tar.gz && \
-    tar -zxvf curl-7.40.0.tar.gz
-WORKDIR /root/curl-7.40.0
-RUN ./configure --with-ssl --with-nghttp2=/usr/local && \
-    make && make install && ldconfig
+ENV CURL_VER 7.49.0-20160417
+RUN wget --quiet http://curl.haxx.se/snapshots/curl-${CURL_VER}.tar.gz && \
+    tar -zxf curl-${CURL_VER}.tar.gz
+RUN    cd /root/curl-${CURL_VER} && \
+    ./configure --with-ssl --with-nghttp2=/usr/local && \
+    make && \
+    make install && \
+    ldconfig
 
 CMD ["-h"]
 ENTRYPOINT ["/usr/local/bin/curl"]
+
